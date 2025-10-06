@@ -2,27 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <windows.h>
-
-// WORD → 2 bytes (16 bits)
-// DWORD → 32 bits (4 bytes)
-// QWORD → 64 bits (8 bytes)
-
-typedef struct OriginalVals
-{
-    WORD originalAttributes;            // From csbi.wAttributes
-    COORD originalBufferSize;           // From csbi.dwSize
-    SMALL_RECT originalWindow;          // From csb.srWindow
-    DWORD originalMode;                 // From GetConsoleMode()
-    CONSOLE_CURSOR_INFO originalCursor; // From GetConsoleCursorInfo()
-} OriginalVals;
-
-typedef struct Console
-{
-    int rows;
-    int cols;
-    bool cursorVisible;
-    OriginalVals original;
-} Console;
+#include "tui.h"
 
 void toggleCursor(Console console, HANDLE hConsole, bool reset)
 {
@@ -51,6 +31,47 @@ void disableScroll()
     newSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
 
     SetConsoleScreenBufferSize(hOut, newSize);
+}
+
+CHAR_INFO *framebufferToLinearBuffer(Console con)
+{
+    CHAR_INFO *charInfos = malloc(con.rows * con.cols * sizeof(CHAR_INFO));
+
+    int k = 0;
+
+    for (int row = 0; row < con.rows; row++)
+    {
+        for (int col = 0; col < con.cols; col++)
+        {
+            CHAR_INFO temp;
+            temp.Char.UnicodeChar = con.framebuffer[row][col].Char;
+            temp.Attributes = con.framebuffer[row][col].Foreground | con.framebuffer[row][col].Background;
+
+            k = row * con.cols + col;
+            charInfos[k] = temp;
+        }
+    }
+
+    return charInfos;
+}
+
+void printScreen(HANDLE hConsole, CHAR_INFO *charInfo, Console con)
+{
+    COORD bufferSize;
+    bufferSize.X = con.cols;
+    bufferSize.Y = con.rows;
+
+    COORD bufferCoord;
+    bufferCoord.X = 0;
+    bufferCoord.Y = 0;
+
+    SMALL_RECT writeRegion;
+    writeRegion.Top = 0;
+    writeRegion.Left = 0;
+    writeRegion.Right = con.cols - 1;
+    writeRegion.Bottom = con.rows - 1;
+
+    WriteConsoleOutput(hConsole, charInfo, bufferSize, bufferCoord, &writeRegion);
 }
 
 void clearScreen(HANDLE hConsole)
@@ -92,40 +113,6 @@ void clearScreen(HANDLE hConsole)
     SetConsoleCursorPosition(hConsole, csbi.dwCursorPosition);
 }
 
-void printScreen(Console console, HANDLE hConsole)
-{
-    disableScroll();
-
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-    SMALL_RECT scrollRect;
-    COORD scrollTarget;
-    CHAR_INFO fill;
-
-    // Get the number of character cells in the current buffer.
-    if (!GetConsoleScreenBufferInfo(hConsole, &csbi))
-    {
-        return;
-    }
-
-    // Scroll the rectangle of the entire buffer.
-    scrollRect.Left = 0;
-    scrollRect.Top = 0;
-    scrollRect.Right = csbi.dwSize.X;
-    scrollRect.Bottom = csbi.dwSize.Y;
-
-    // Scroll it upwards off the top of the buffer with a magnitude of the entire height.
-    scrollTarget.X = 0;
-    scrollTarget.Y = (SHORT)(0 - csbi.dwSize.Y);
-
-    csbi.wAttributes = FOREGROUND_RED | BACKGROUND_RED | FOREGROUND_INTENSITY;
-
-    fill.Char.UnicodeChar = TEXT(' ');
-    fill.Attributes = csbi.wAttributes;
-
-    // Do the scroll
-    ScrollConsoleScreenBuffer(hConsole, &scrollRect, NULL, scrollTarget, &fill);
-}
-
 Console getWindowSize(Console *con, HANDLE hConsole)
 {
     CONSOLE_SCREEN_BUFFER_INFO csbi;
@@ -156,7 +143,8 @@ Console initConsole(HANDLE hConsole)
     con.cols = 0;
     con.cursorVisible = true;
 
-    // Set original values
+    getWindowSize(&con, hConsole);
+
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     GetConsoleScreenBufferInfo(hConsole, &csbi);
 
@@ -172,7 +160,34 @@ Console initConsole(HANDLE hConsole)
     con.original.originalMode = mode;
     con.original.originalCursor = cursorInfo;
 
+    con.framebuffer = malloc(con.rows * sizeof(Cell *));
+    for (int i = 0; i < con.rows; i++)
+    {
+        con.framebuffer[i] = malloc(con.cols * sizeof(Cell));
+    }
+
+    // Populate Cells
+    for (int row = 0; row < con.rows; row++)
+    {
+        for (int col = 0; col < con.cols; col++)
+        {
+            Cell cell = con.framebuffer[row][col];
+            cell.Char = L' ';
+
+            cell.Foreground = con.original.originalAttributes & 0x0F;
+            cell.Background = con.original.originalAttributes & 0xF0;
+
+            con.framebuffer[row][col] = cell;
+        }
+    }
+
     return con;
+}
+
+void setCellColor(Console *con, int row, int col, ColorForeground Fcolor, ColorBackground Bcolor)
+{
+    con->framebuffer[row][col].Foreground = Fcolor;
+    con->framebuffer[row][col].Background = Bcolor;
 }
 
 void resetConsole(Console con, HANDLE hConsole)
@@ -187,24 +202,4 @@ void resetConsole(Console con, HANDLE hConsole)
     SetConsoleMode(hConsole, con.original.originalMode);
     toggleCursor(con, hConsole, true);
     clearScreen(hConsole);
-}
-
-int main()
-{
-    HANDLE hStdOut;
-    hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-
-    Console console = initConsole(hStdOut);
-
-    getWindowSize(&console, hStdOut);
-    // toggleCursor(console, hStdOut, false);
-
-    printScreen(console, hStdOut);
-
-    getchar();
-
-    // Reset cursor
-    resetConsole(console, hStdOut);
-
-    return 0;
 }
