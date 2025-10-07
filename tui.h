@@ -76,7 +76,7 @@ void printScreen(HANDLE hConsole, CHAR_INFO *charInfo, Console con);
 void clearScreen(HANDLE hConsole);
 Console getWindowSize(Console *con, HANDLE hConsole);
 Console initConsole(HANDLE hConsole);
-void setCellColor(Console *con, int row, int col, ColorForeground Fcolor, ColorBackground Bcolor);
+void setCellData(Console *con, int row, int col, ColorForeground Fcolor, ColorBackground Bcolor, wchar_t Char);
 void resetConsole(Console con, HANDLE hConsole);
 
 #endif

@@ -184,10 +184,11 @@ Console initConsole(HANDLE hConsole)
     return con;
 }
 
-void setCellColor(Console *con, int row, int col, ColorForeground Fcolor, ColorBackground Bcolor)
+void setCellData(Console *con, int row, int col, ColorForeground Fcolor, ColorBackground Bcolor, wchar_t Char)
 {
     con->framebuffer[row][col].Foreground = Fcolor;
     con->framebuffer[row][col].Background = Bcolor;
+    con->framebuffer[row][col].Char = Char;
 }
 
 void resetConsole(Console con, HANDLE hConsole)
