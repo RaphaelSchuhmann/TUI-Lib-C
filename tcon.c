@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <windows.h>
-#include "tui.h"
+#include "tcon.h"
 
 void toggleCursor(Console console, HANDLE hConsole, bool reset)
 {
