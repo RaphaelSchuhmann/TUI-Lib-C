@@ -78,5 +78,6 @@ Console getWindowSize(Console *con, HANDLE hConsole);
 Console initConsole(HANDLE hConsole);
 void setCellData(Console *con, int row, int col, ColorForeground Fcolor, ColorBackground Bcolor, wchar_t Char);
 void resetConsole(Console con, HANDLE hConsole);
+void renderConsole(Console con, HANDLE hConsole);
 
 #endif

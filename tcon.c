@@ -204,3 +204,10 @@ void resetConsole(Console con, HANDLE hConsole)
     toggleCursor(con, hConsole, true);
     clearScreen(hConsole);
 }
+
+void renderConsole(Console con, HANDLE hConsole)
+{
+    CHAR_INFO *linearBuffer = framebufferToLinearBuffer(con);
+    printScreen(hConsole, linearBuffer, con);
+    free(linearBuffer);
+}
