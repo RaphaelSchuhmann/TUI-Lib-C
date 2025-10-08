@@ -113,7 +113,7 @@ void clearScreen(HANDLE hConsole)
     SetConsoleCursorPosition(hConsole, csbi.dwCursorPosition);
 }
 
-Console getWindowSize(Console *con, HANDLE hConsole)
+void getWindowSize(Console *con, HANDLE hConsole)
 {
     CONSOLE_SCREEN_BUFFER_INFO csbi;
 
@@ -205,9 +205,13 @@ void resetConsole(Console con, HANDLE hConsole)
     clearScreen(hConsole);
 }
 
-void renderConsole(Console con, HANDLE hConsole)
+void renderConsole(Console con, HANDLE hConsole, bool hlt)
 {
     CHAR_INFO *linearBuffer = framebufferToLinearBuffer(con);
     printScreen(hConsole, linearBuffer, con);
+    
+    if (hlt)
+        getchar();
+        
     free(linearBuffer);
 }
