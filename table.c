@@ -1,5 +1,6 @@
 #include "tcon.h"
 #include "table.h"
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -47,6 +48,20 @@ Table createTable(Console *con, int rows, int cols)
                 continue; // skip this cell
             }
 
+            // Initialize content field
+            cell->content = malloc((cell->size + 1) * sizeof(char));
+            if (!cell->content)
+            {
+                perror("malloc");
+                exit(1);
+            }
+            memset(cell->content, ' ', cell->size);
+            cell->content[cell->size] = '\0';
+
+            // Set default colors
+            cell->bgColor = BBLACK;
+            cell->fgColor = FWHITE;
+
             // Allocate array of pointers to console cells
             cell->conCells = malloc(cell->size * sizeof(Cell *));
             int k = 0;
@@ -65,30 +80,51 @@ Table createTable(Console *con, int rows, int cols)
 
 void setCellValue(Table *table, char *value, int row, int col, ColorForeground fgColor, ColorBackground bgColor)
 {
-    int len = strlen(value);
     TableCell *cell = &table->cells[row][col];
 
+    int spaceCounter = 0;
+    for (int i = 0; i < strlen(value); i++)
+    {
+        if (isspace(value[i]))
+            spaceCounter++;
+    }
+
+    if (spaceCounter == strlen(value) && cell->size != strlen(value))
+        contentCut(value, cell->size - 1, strlen(value));
+
+    int len = strlen(value);
     bool overflow = len > table->cells[row][col].size ? true : false;
 
-    for (int j = 0; j < cell->size; j++)
+    cell->content = value;
+    cell->fgColor = fgColor;
+    cell->bgColor = bgColor;
+
+    int maxContent = overflow ? cell->size - 3 : cell->size;
+
+    for (int j = 0; j < maxContent; j++)
     {
         cell->conCells[j]->Foreground = fgColor;
-        cell->conCells[j]->Background = fgColor;
-        if (j == cell->size - 1 && overflow)
-        {
-            j = j - 3;
-            for (int i = 0; i < 3; i++)
-            {
-                cell->conCells[j + i]->Char = L'.';
-            }
-            break;
-        }
-
-        if (j < len)
-            cell->conCells[j]->Char = value[j];
-        else
-            cell->conCells[j]->Char = L' ';
+        cell->conCells[j]->Background = bgColor;
+        cell->conCells[j]->Char = (j < len) ? value[j] : L' ';
     }
+
+    if (overflow)
+    {
+        cell->conCells[cell->size - 3]->Char = L'.';
+        cell->conCells[cell->size - 2]->Char = L'.';
+        cell->conCells[cell->size - 1]->Char = L'.';
+    }
+}
+
+void contentCut(char *str, int begin, int len)
+{
+    int l = strlen(str);
+
+    if (len < 0)
+        len = l - begin;
+    if (begin + len > l)
+        len = l - begin;
+    memmove(str + begin, str + begin + len, l - len + 1);
 }
 
 void clearTable(Table *table, Console con, HANDLE hConsole, bool hlt)
