@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <windows.h>
+#include <inttypes.h>
 #include "tcon.h"
 
 void toggleCursor(Console console, HANDLE hConsole, bool reset)
@@ -37,11 +38,11 @@ CHAR_INFO *framebufferToLinearBuffer(Console con)
 {
     CHAR_INFO *charInfos = malloc(con.rows * con.cols * sizeof(CHAR_INFO));
 
-    int k = 0;
+    int32_t k = 0;
 
-    for (int row = 0; row < con.rows; row++)
+    for (int32_t row = 0; row < con.rows; row++)
     {
-        for (int col = 0; col < con.cols; col++)
+        for (int32_t col = 0; col < con.cols; col++)
         {
             CHAR_INFO temp;
             temp.Char.UnicodeChar = con.framebuffer[row][col].Char;
@@ -76,9 +77,9 @@ void printScreen(HANDLE hConsole, CHAR_INFO *charInfo, Console con)
 
 void clearScreen(HANDLE hConsole, Console *con, bool hlt)
 {
-    for (int r = 0; r < con->rows; r++)
+    for (int32_t r = 0; r < con->rows; r++)
     {
-        for (int c = 0; c < con->cols; c++) 
+        for (int32_t c = 0; c < con->cols; c++) 
         {
             con->framebuffer[r][c].Char = L' ';
             con->framebuffer[r][c].Background = BBLACK;
@@ -105,8 +106,8 @@ void getWindowSize(Console *con, HANDLE hConsole)
         exit(EXIT_FAILURE);
     }
 
-    int columns = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-    int rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+    int32_t columns = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    int32_t rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
 
     con->rows = rows;
     con->cols = columns;
@@ -137,15 +138,15 @@ Console initConsole(HANDLE hConsole)
     con.original.originalCursor = cursorInfo;
 
     con.framebuffer = malloc(con.rows * sizeof(Cell *));
-    for (int i = 0; i < con.rows; i++)
+    for (int32_t i = 0; i < con.rows; i++)
     {
         con.framebuffer[i] = malloc(con.cols * sizeof(Cell));
     }
 
     // Populate Cells
-    for (int row = 0; row < con.rows; row++)
+    for (int32_t row = 0; row < con.rows; row++)
     {
-        for (int col = 0; col < con.cols; col++)
+        for (int32_t col = 0; col < con.cols; col++)
         {
             Cell cell = con.framebuffer[row][col];
             cell.Char = L' ';
@@ -160,7 +161,7 @@ Console initConsole(HANDLE hConsole)
     return con;
 }
 
-void setCellData(Console *con, int row, int col, ColorForeground Fcolor, ColorBackground Bcolor, wchar_t Char)
+void setCellData(Console *con, int32_t row, int32_t col, ColorForeground Fcolor, ColorBackground Bcolor, wchar_t Char)
 {
     con->framebuffer[row][col].Foreground = Fcolor;
     con->framebuffer[row][col].Background = Bcolor;

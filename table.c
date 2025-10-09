@@ -3,10 +3,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
-// TODO: Re Draw
-
-Table createTable(Console *con, int rows, int cols)
+Table createTable(Console *con, int32_t rows, int32_t cols)
 {
     Table table;
     table.rows = rows;
@@ -14,31 +13,31 @@ Table createTable(Console *con, int rows, int cols)
 
     // Allocate cells array in table
     table.cells = malloc(rows * sizeof(TableCell *));
-    for (int r = 0; r < rows; r++)
+    for (int32_t r = 0; r < rows; r++)
         table.cells[r] = malloc(cols * sizeof(TableCell));
 
     // Prepare separator columns
-    int *separators = malloc(cols * sizeof(int));
-    int colWidth = con->cols / cols;
-    for (int j = 0; j < cols; j++)
+    int32_t *separators = malloc(cols * sizeof(int));
+    int32_t colWidth = con->cols / cols;
+    for (int32_t j = 0; j < cols; j++)
         separators[j] = (j + 1) * colWidth;
 
     // Create column borders in framebuffer
-    for (int i = 0; i < rows; i++)
+    for (int32_t i = 0; i < rows; i++)
     {
-        for (int j = 0; j < cols; j++)
+        for (int32_t j = 0; j < cols; j++)
             setCellData(con, i, separators[j], FWHITE, BBLACK, '|');
     }
 
     // Link console cells to table cells
-    for (int r = 0; r < rows; r++)
+    for (int32_t r = 0; r < rows; r++)
     {
-        for (int c = 0; c < cols; c++)
+        for (int32_t c = 0; c < cols; c++)
         {
             TableCell *cell = &table.cells[r][c];
 
-            int startCol = (c == 0) ? 0 : separators[c - 1] + 1;
-            int endCol = separators[c] - 1;
+            int32_t startCol = (c == 0) ? 0 : separators[c - 1] + 1;
+            int32_t endCol = separators[c] - 1;
             cell->size = endCol - startCol + 1;
 
             if (cell->size <= 0)
@@ -64,10 +63,10 @@ Table createTable(Console *con, int rows, int cols)
 
             // Allocate array of pointers to console cells
             cell->conCells = malloc(cell->size * sizeof(Cell *));
-            int k = 0;
+            int32_t k = 0;
 
             // Map framebuffer cells to this table cell
-            for (int fc = startCol; fc <= endCol; fc++) // inclusive of endCol
+            for (int32_t fc = startCol; fc <= endCol; fc++) // inclusive of endCol
             {
                 cell->conCells[k++] = &con->framebuffer[r][fc];
             }
@@ -78,12 +77,12 @@ Table createTable(Console *con, int rows, int cols)
     return table;
 }
 
-void setCellValue(Table *table, char *value, int row, int col, ColorForeground fgColor, ColorBackground bgColor)
+void setCellValue(Table *table, char *value, int32_t row, int32_t col, ColorForeground fgColor, ColorBackground bgColor)
 {
     TableCell *cell = &table->cells[row][col];
 
-    int spaceCounter = 0;
-    for (int i = 0; i < strlen(value); i++)
+    int32_t spaceCounter = 0;
+    for (int32_t i = 0; i < strlen(value); i++)
     {
         if (isspace(value[i]))
             spaceCounter++;
@@ -92,16 +91,16 @@ void setCellValue(Table *table, char *value, int row, int col, ColorForeground f
     if (spaceCounter == strlen(value) && cell->size != strlen(value))
         contentCut(value, cell->size - 1, strlen(value));
 
-    int len = strlen(value);
+    int32_t len = strlen(value);
     bool overflow = len > table->cells[row][col].size ? true : false;
 
     cell->content = value;
     cell->fgColor = fgColor;
     cell->bgColor = bgColor;
 
-    int maxContent = overflow ? cell->size - 3 : cell->size;
+    int32_t maxContent = overflow ? cell->size - 3 : cell->size;
 
-    for (int j = 0; j < maxContent; j++)
+    for (int32_t j = 0; j < maxContent; j++)
     {
         cell->conCells[j]->Foreground = fgColor;
         cell->conCells[j]->Background = bgColor;
@@ -116,9 +115,9 @@ void setCellValue(Table *table, char *value, int row, int col, ColorForeground f
     }
 }
 
-void contentCut(char *str, int begin, int len)
+void contentCut(char *str, int32_t begin, int32_t len)
 {
-    int l = strlen(str);
+    int32_t l = strlen(str);
 
     if (len < 0)
         len = l - begin;
@@ -129,12 +128,12 @@ void contentCut(char *str, int begin, int len)
 
 void clearTable(Table *table, Console con, HANDLE hConsole, bool hlt)
 {
-    for (int i = 0; i < table->rows; i++)
+    for (int32_t i = 0; i < table->rows; i++)
     {
-        for (int j = 0; j < table->cols; j++)
+        for (int32_t j = 0; j < table->cols; j++)
         {
             TableCell *cell = &table->cells[i][j];
-            for (int k = 0; k < cell->size; k++)
+            for (int32_t k = 0; k < cell->size; k++)
             {
                 cell->conCells[k]->Char = L' ';
                 cell->conCells[k]->Foreground = FWHITE;
@@ -149,14 +148,14 @@ void clearTable(Table *table, Console con, HANDLE hConsole, bool hlt)
 void debugTableCellsByChar(Console *con, Table *table)
 {
     printf("=== Table Debug Start ===\n");
-    for (int r = 0; r < table->rows; r++)
+    for (int32_t r = 0; r < table->rows; r++)
     {
-        for (int c = 0; c < table->cols; c++)
+        for (int32_t c = 0; c < table->cols; c++)
         {
             TableCell *cell = &table->cells[r][c];
             printf("Cell [%d,%d], size=%d: ", r, c, cell->size);
 
-            for (int k = 0; k < cell->size; k++)
+            for (int32_t k = 0; k < cell->size; k++)
             {
                 wchar_t ch = cell->conCells[k]->Char;
 
@@ -176,26 +175,26 @@ void reDrawTable(Table *table, Console *con, HANDLE hConsole, bool hlt)
     getWindowSize(con, hConsole);
 
     // Recalculate separators
-    int *separators = malloc(table->cols * sizeof(int));
-    int colWidth = con->cols / table->cols;
-    for (int j = 0; j < table->cols; j++)
+    int32_t *separators = malloc(table->cols * sizeof(int));
+    int32_t colWidth = con->cols / table->cols;
+    for (int32_t j = 0; j < table->cols; j++)
         separators[j] = (j + 1) * colWidth;
 
-    for (int i = 0; i < table->rows; i++)
+    for (int32_t i = 0; i < table->rows; i++)
     {
-        for (int j = 0; j < table->cols; j++)
+        for (int32_t j = 0; j < table->cols; j++)
             setCellData(con, i, separators[j], FWHITE, BBLACK, '|');
     }
 
     // Update framebuffer cells for each table cell
-    for (int tr = 0; tr < table->rows; tr++)
+    for (int32_t tr = 0; tr < table->rows; tr++)
     {
-        for (int tc = 0; tc < table->cols; tc++)
+        for (int32_t tc = 0; tc < table->cols; tc++)
         {
             TableCell *cell = &table->cells[tr][tc];
 
-            int startCol = (tc == 0) ? 0 : separators[tc - 1] + 1;
-            int endCol = separators[tc] - 1;
+            int32_t startCol = (tc == 0) ? 0 : separators[tc - 1] + 1;
+            int32_t endCol = separators[tc] - 1;
             cell->size = endCol - startCol + 1;
 
             if (cell->size <= 0)
@@ -205,8 +204,8 @@ void reDrawTable(Table *table, Console *con, HANDLE hConsole, bool hlt)
                 continue; // skip this cell
             }
 
-            int k = 0;
-            for (int fc = startCol; fc <= endCol; fc++) // inclusive of endCol
+            int32_t k = 0;
+            for (int32_t fc = startCol; fc <= endCol; fc++) // inclusive of endCol
             {
                 cell->conCells[k++] = &con->framebuffer[tr][fc];
             }
@@ -214,9 +213,9 @@ void reDrawTable(Table *table, Console *con, HANDLE hConsole, bool hlt)
     }
 
     // Reflow cell content
-    for (int tr = 0; tr < table->rows; tr++)
+    for (int32_t tr = 0; tr < table->rows; tr++)
     {
-        for (int tc = 0; tc < table->cols; tc++)
+        for (int32_t tc = 0; tc < table->cols; tc++)
         {
             TableCell *cell = &table->cells[tr][tc];
             char *content = cell->content;
@@ -230,9 +229,9 @@ void reDrawTable(Table *table, Console *con, HANDLE hConsole, bool hlt)
 
 void removeTable(Table *table)
 {
-    for (int r = 0; r < table->rows; r++)
+    for (int32_t r = 0; r < table->rows; r++)
     {
-        for (int c = 0; c < table->cols; c++)
+        for (int32_t c = 0; c < table->cols; c++)
         {
             TableCell *cell = &table->cells[r][c];
 

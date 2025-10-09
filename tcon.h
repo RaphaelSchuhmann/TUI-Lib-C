@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <stdbool.h>
+#include <inttypes.h>
 
 #ifndef TCON_H
 #define TCON_H
@@ -62,8 +63,8 @@ typedef struct Cell
 
 typedef struct Console
 {
-    int rows;
-    int cols;
+    int32_t rows;
+    int32_t cols;
     bool cursorVisible;
     Cell **framebuffer;
     OriginalVals original;
@@ -172,7 +173,7 @@ Arguments:
 Returns:
    Void
 */
-void setCellData(Console *con, int row, int col, ColorForeground Fcolor, ColorBackground Bcolor, wchar_t Char);
+void setCellData(Console *con, int32_t row, int32_t col, ColorForeground Fcolor, ColorBackground Bcolor, wchar_t Char);
 
 /*
 Resets all console values to pre execution state
