@@ -124,11 +124,13 @@ resizing the console buffer to remove the scrollable area.
 
 Arguments:
    hConsole - the windows console api handler
+   console - the current instance of the console
+   hlt - a flag which when flagged makes the program wait for user input on rerender
  
 Returns:
    Void
 */
-void clearScreen(HANDLE hConsole);
+void clearScreen(HANDLE hConsole, Console *con, bool hlt);
 
 /*
 Gets the current width and height of the console screen buffer and
@@ -182,7 +184,7 @@ Arguments:
 Returns:
    Void
 */
-void resetConsole(Console con, HANDLE hConsole);
+void resetConsole(Console *con, HANDLE hConsole);
 
 /*
 Turns the current framebuffer into a linear buffer and prints it to the screen.

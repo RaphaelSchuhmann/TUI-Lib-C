@@ -74,43 +74,19 @@ void printScreen(HANDLE hConsole, CHAR_INFO *charInfo, Console con)
     WriteConsoleOutput(hConsole, charInfo, bufferSize, bufferCoord, &writeRegion);
 }
 
-void clearScreen(HANDLE hConsole)
+void clearScreen(HANDLE hConsole, Console *con, bool hlt)
 {
-    disableScroll();
-
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-    SMALL_RECT scrollRect;
-    COORD scrollTarget;
-    CHAR_INFO fill;
-
-    // Get the number of character cells in the current buffer.
-    if (!GetConsoleScreenBufferInfo(hConsole, &csbi))
+    for (int r = 0; r < con->rows; r++)
     {
-        return;
+        for (int c = 0; c < con->cols; c++) 
+        {
+            con->framebuffer[r][c].Char = L' ';
+            con->framebuffer[r][c].Background = BBLACK;
+            con->framebuffer[r][c].Foreground = FWHITE;
+        }
     }
 
-    // Scroll the rectangle of the entire buffer.
-    scrollRect.Left = 0;
-    scrollRect.Top = 0;
-    scrollRect.Right = csbi.dwSize.X;
-    scrollRect.Bottom = csbi.dwSize.Y;
-
-    // Scroll it upwards off the top of the buffer with a magnitude of the entire height.
-    scrollTarget.X = 0;
-    scrollTarget.Y = (SHORT)(0 - csbi.dwSize.Y);
-
-    // Fill with empty spaces with the buffer's default text attribute.
-    fill.Char.UnicodeChar = TEXT(' ');
-    fill.Attributes = csbi.wAttributes;
-
-    // Do the scroll
-    ScrollConsoleScreenBuffer(hConsole, &scrollRect, NULL, scrollTarget, &fill);
-
-    // Move the cursor to the top left corner too.
-    csbi.dwCursorPosition.X = 0;
-    csbi.dwCursorPosition.Y = 0;
-
-    SetConsoleCursorPosition(hConsole, csbi.dwCursorPosition);
+    renderConsole(*con, hConsole, hlt);
 }
 
 void getWindowSize(Console *con, HANDLE hConsole)
@@ -191,27 +167,30 @@ void setCellData(Console *con, int row, int col, ColorForeground Fcolor, ColorBa
     con->framebuffer[row][col].Char = Char;
 }
 
-void resetConsole(Console con, HANDLE hConsole)
+void resetConsole(Console *con, HANDLE hConsole)
 {
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     GetConsoleScreenBufferInfo(hConsole, &csbi);
+    
+    SetConsoleTextAttribute(hConsole, con->original.originalAttributes);
+    SetConsoleScreenBufferSize(hConsole, con->original.originalBufferSize);
+    SetConsoleWindowInfo(hConsole, TRUE, &con->original.originalWindow);
+    SetConsoleMode(hConsole, con->original.originalMode);
 
-    SetConsoleTextAttribute(hConsole, con.original.originalAttributes);
-    SetConsoleScreenBufferSize(hConsole, con.original.originalBufferSize);
-    SetConsoleWindowInfo(hConsole, TRUE, &con.original.originalWindow);
+    clearScreen(hConsole, con, false);
+    toggleCursor(*con, hConsole, true);
 
-    SetConsoleMode(hConsole, con.original.originalMode);
-    toggleCursor(con, hConsole, true);
-    clearScreen(hConsole);
+    COORD topLeft = {0, 0};
+    SetConsoleCursorPosition(hConsole, topLeft);
 }
 
 void renderConsole(Console con, HANDLE hConsole, bool hlt)
 {
     CHAR_INFO *linearBuffer = framebufferToLinearBuffer(con);
     printScreen(hConsole, linearBuffer, con);
-    
+
     if (hlt)
         getchar();
-        
+
     free(linearBuffer);
 }
