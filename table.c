@@ -170,3 +170,99 @@ void debugTableCellsByChar(Console *con, Table *table)
     }
     printf("=== Table Debug End ===\n");
 }
+
+void reDrawTable(Table *table, Console *con, HANDLE hConsole, bool hlt)
+{
+    getWindowSize(con, hConsole);
+
+    // Recalculate separators
+    int *separators = malloc(table->cols * sizeof(int));
+    int colWidth = con->cols / table->cols;
+    for (int j = 0; j < table->cols; j++)
+        separators[j] = (j + 1) * colWidth;
+
+    for (int i = 0; i < table->rows; i++)
+    {
+        for (int j = 0; j < table->cols; j++)
+            setCellData(con, i, separators[j], FWHITE, BBLACK, '|');
+    }
+
+    // Update framebuffer cells for each table cell
+    for (int tr = 0; tr < table->rows; tr++)
+    {
+        for (int tc = 0; tc < table->cols; tc++)
+        {
+            TableCell *cell = &table->cells[tr][tc];
+
+            int startCol = (tc == 0) ? 0 : separators[tc - 1] + 1;
+            int endCol = separators[tc] - 1;
+            cell->size = endCol - startCol + 1;
+
+            if (cell->size <= 0)
+            {
+                cell->size = 0;
+                cell->conCells = NULL;
+                continue; // skip this cell
+            }
+
+            int k = 0;
+            for (int fc = startCol; fc <= endCol; fc++) // inclusive of endCol
+            {
+                cell->conCells[k++] = &con->framebuffer[tr][fc];
+            }
+        }
+    }
+
+    // Reflow cell content
+    for (int tr = 0; tr < table->rows; tr++)
+    {
+        for (int tc = 0; tc < table->cols; tc++)
+        {
+            TableCell *cell = &table->cells[tr][tc];
+            char *content = cell->content;
+            setCellValue(table, content, tr, tc, cell->fgColor, cell->bgColor);
+        }
+    }
+
+    // Rerender framebuffer
+    renderConsole(*con, hConsole, hlt);
+}
+
+void removeTable(Table *table)
+{
+    for (int r = 0; r < table->rows; r++)
+    {
+        for (int c = 0; c < table->cols; c++)
+        {
+            TableCell *cell = &table->cells[r][c];
+
+            if (cell->content)
+            {
+                cell->content = NULL;
+                free(cell->content);
+            }
+
+            if (cell->conCells) 
+            {
+                cell->conCells = NULL;
+                free(cell->conCells);
+            }
+
+            cell->size = 0;
+            cell->fgColor = FWHITE;
+            cell->bgColor = BBLACK;
+        }
+    }
+}
+
+void clearTableConsole(Table *table, Console *con, HANDLE hConsole, bool hlt)
+{
+    removeTable(table);
+    clearScreen(hConsole, con, hlt);
+}
+
+void resetTableConsole(Table *table, Console *con, HANDLE hConsole)
+{
+    removeTable(table);
+    resetConsole(con, hConsole);
+}
