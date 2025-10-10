@@ -5,18 +5,25 @@
 #include <inttypes.h>
 #include "tcon.h"
 
-void toggleCursor(Console console, HANDLE hConsole, bool reset)
+void showCursor(Console console, HANDLE hConsole)
 {
-    if (reset)
-    {
-        SetConsoleCursorInfo(hConsole, &console.original.originalCursor);
-        return;
-    }
-
     CONSOLE_CURSOR_INFO cursorInfo;
     GetConsoleCursorInfo(hConsole, &cursorInfo);
-    cursorInfo.bVisible = !console.cursorVisible;
+    cursorInfo.bVisible = true;
     SetConsoleCursorInfo(hConsole, &cursorInfo);
+}
+
+void hideCursor(Console console, HANDLE hConsole)
+{
+    CONSOLE_CURSOR_INFO cursorInfo;
+    GetConsoleCursorInfo(hConsole, &cursorInfo);
+    cursorInfo.bVisible = false;
+    SetConsoleCursorInfo(hConsole, &cursorInfo);
+}
+
+void resetCursor(Console con, HANDLE hConsole)
+{
+    SetConsoleCursorInfo(hConsole, &con.original.originalCursor);
 }
 
 void disableScroll()
@@ -32,6 +39,23 @@ void disableScroll()
     newSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
 
     SetConsoleScreenBufferSize(hOut, newSize);
+}
+
+void hlt()
+{
+    INPUT_RECORD rec;
+    DWORD read;
+    HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+
+    while (1)
+    {
+        ReadConsoleInput(hIn, &rec, 1, &read);
+        if (rec.EventType == KEY_EVENT && rec.Event.KeyEvent.bKeyDown)
+        {
+            char c = rec.Event.KeyEvent.uChar.AsciiChar;
+            break; // single key pressed
+        }
+    }
 }
 
 CHAR_INFO *framebufferToLinearBuffer(Console con)
@@ -79,7 +103,7 @@ void clearScreen(HANDLE hConsole, Console *con, bool hlt)
 {
     for (int32_t r = 0; r < con->rows; r++)
     {
-        for (int32_t c = 0; c < con->cols; c++) 
+        for (int32_t c = 0; c < con->cols; c++)
         {
             con->framebuffer[r][c].Char = L' ';
             con->framebuffer[r][c].Background = BBLACK;
@@ -172,26 +196,48 @@ void resetConsole(Console *con, HANDLE hConsole)
 {
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     GetConsoleScreenBufferInfo(hConsole, &csbi);
-    
+
     SetConsoleTextAttribute(hConsole, con->original.originalAttributes);
     SetConsoleScreenBufferSize(hConsole, con->original.originalBufferSize);
     SetConsoleWindowInfo(hConsole, TRUE, &con->original.originalWindow);
     SetConsoleMode(hConsole, con->original.originalMode);
 
     clearScreen(hConsole, con, false);
-    toggleCursor(*con, hConsole, true);
+    resetCursor(*con, hConsole);
 
     COORD topLeft = {0, 0};
     SetConsoleCursorPosition(hConsole, topLeft);
 }
 
-void renderConsole(Console con, HANDLE hConsole, bool hlt)
+void renderConsole(Console con, HANDLE hConsole, bool hltf)
 {
     CHAR_INFO *linearBuffer = framebufferToLinearBuffer(con);
     printScreen(hConsole, linearBuffer, con);
 
-    if (hlt)
-        getchar();
+    if (hltf)
+        hlt();
 
     free(linearBuffer);
+}
+
+void tconReadInput(Console con, HANDLE hConsole, int32_t row, int32_t col, char *buffer, int32_t maxLen)
+{
+    COORD pos;
+    pos.X = col;
+    pos.Y = row;
+
+    SetConsoleCursorPosition(hConsole, pos);
+    showCursor(con, hConsole);
+
+    DWORD charsRead = 0;
+    ReadConsoleA(GetStdHandle(STD_INPUT_HANDLE), buffer, maxLen - 1, &charsRead, NULL);
+
+    // Strip CR/LF
+    while (charsRead > 0 && (buffer[charsRead - 1] == '\n' || buffer[charsRead - 1] == '\r'))
+        charsRead--;
+
+    // Null-terminate safely
+    buffer[charsRead] = '\0';
+
+    hideCursor(con, hConsole);
 }

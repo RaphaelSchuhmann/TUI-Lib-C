@@ -72,17 +72,40 @@ typedef struct Console
 
 
 /*
-Toggles the visibility of the cursor in the terminal.
+Sets the cursor to visible
 
 Arguments:
    console - the current instance of the console
    hConsole - the windows console api handler
-   reset - a flag which is used to reset the cursor to its original state
  
 Returns:
    Void
 */
-void toggleCursor(Console console, HANDLE hConsole, bool reset);
+void showCursor(Console console, HANDLE hConsole);
+
+/*
+Sets the cursor to hidden
+
+Arguments:
+   console - the current instance of the console
+   hConsole - the windows console api handler
+ 
+Returns:
+   Void
+*/
+void hideCursor(Console console, HANDLE hConsole);
+
+/*
+Resets the cursor to its original values
+
+Arguments:
+   console - the current instance of the console
+   hConsole - the windows console api handler
+ 
+Returns:
+   Void
+*/
+void resetCursor(Console con, HANDLE hConsole);
 
 /*
 Resizes the terminal buffer so there is no scrollable area.
@@ -194,11 +217,43 @@ If the hlt flag is true it also waits for user input
 Arguments:
    console - the current instance of the console
    hConsole - the windows console api handler
-   hlt - a flag which when flagged makes the program wait for user input
+   hltf - a flag which when flagged makes the program wait for user input
  
 Returns:
    Void
 */
-void renderConsole(Console con, HANDLE hConsole, bool hlt);
+void renderConsole(Console con, HANDLE hConsole, bool hltf);
+
+/*
+Turns the current framebuffer into a linear buffer and prints it to the screen.
+If the hlt flag is true it also waits for user input
+
+Arguments:
+   console - the current instance of the console
+   hConsole - the windows console api handler
+   row - the row in framebuffer in which the input should be
+   col - the specific column in the framebuffer in which the input should be
+   buffer - the input buffer in which the user input gets written
+   maxLen - the maximum length of input
+
+Note:
+   Note that this this won't dynamically increase the input buffer size when user input exceeds
+   the buffer size
+ 
+Returns:
+   Void
+*/
+void tconReadInput(Console con, HANDLE hConsole, int32_t row, int32_t col, char *buffer, int32_t maxLen);
+
+/*
+Halts the program and waits until the user presses enter
+
+Arguments:
+   None
+ 
+Returns:
+   Void
+*/
+void hlt();
 
 #endif
