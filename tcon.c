@@ -241,3 +241,20 @@ void tconReadInput(Console con, HANDLE hConsole, int32_t row, int32_t col, char 
 
     hideCursor(con, hConsole);
 }
+
+void print(Console con, HANDLE hConsole, int32_t row, int32_t col, char *buffer, ColorForeground fgColor, ColorBackground bgColor, bool hlt)
+{
+    int32_t size = strlen(buffer);
+
+    if (size <= 0)
+    {
+        return;
+    }
+
+    for (int i = 0; i < size; i++)
+    {
+        setCellData(&con, row, col + i, fgColor, bgColor, buffer[i]);
+    }
+
+    renderConsole(con, hConsole, hlt);
+}

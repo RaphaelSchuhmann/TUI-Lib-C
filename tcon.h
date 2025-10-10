@@ -256,4 +256,6 @@ Returns:
 */
 void hlt();
 
+void print(Console con, HANDLE hConsole, int32_t row, int32_t col, char *buffer, ColorForeground fgColor, ColorBackground bgColor, bool hlt);
+
 #endif
