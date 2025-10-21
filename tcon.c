@@ -1,7 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include <windows.h>
 #include <inttypes.h>
 #include "tcon.h"
 

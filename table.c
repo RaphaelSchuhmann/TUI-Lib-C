@@ -4,6 +4,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
+// ✓
+// ! FIXME: When columns is any other value than 3, it adds one separator to much
+// TODO: Add rows [✓], remove rows [], add columns [], remove columns []
 
 Table createTable(Console *con, int32_t rows, int32_t cols)
 {
@@ -102,6 +105,8 @@ void setCellValue(Table *table, char *value, int32_t row, int32_t col, ColorFore
 
     for (int32_t j = 0; j < maxContent; j++)
     {
+        if (!cell->conCells[j])
+            continue;
         cell->conCells[j]->Foreground = fgColor;
         cell->conCells[j]->Background = bgColor;
         cell->conCells[j]->Char = (j < len) ? value[j] : L' ';
@@ -204,7 +209,10 @@ void reDrawTable(Table *table, Console *con, HANDLE hConsole, bool hlt)
                 continue; // skip this cell
             }
 
+            cell->conCells = malloc(cell->size * sizeof(Cell *));
             int32_t k = 0;
+
+            // Map framebuffer cells to this table cell
             for (int32_t fc = startCol; fc <= endCol; fc++) // inclusive of endCol
             {
                 cell->conCells[k++] = &con->framebuffer[tr][fc];
@@ -222,6 +230,8 @@ void reDrawTable(Table *table, Console *con, HANDLE hConsole, bool hlt)
             setCellValue(table, content, tr, tc, cell->fgColor, cell->bgColor);
         }
     }
+
+    free(separators);
 
     // Rerender framebuffer
     renderConsole(*con, hConsole, hlt);
@@ -241,7 +251,7 @@ void removeTable(Table *table)
                 free(cell->content);
             }
 
-            if (cell->conCells) 
+            if (cell->conCells)
             {
                 cell->conCells = NULL;
                 free(cell->conCells);
@@ -264,4 +274,62 @@ void resetTableConsole(Table *table, Console *con, HANDLE hConsole)
 {
     removeTable(table);
     resetConsole(con, hConsole);
+}
+
+void addTableRow(Table *table, Console *con, int32_t rows)
+{
+    if (rows <= 0)
+        return;
+
+    int32_t oldRows = table->rows;
+    int32_t newRows = table->rows + rows;
+
+    table->cells = realloc(table->cells, newRows * sizeof(TableCell *));
+    if (!table->cells)
+        return;
+
+    for (int32_t r = oldRows; r < newRows; r++)
+    {
+        table->cells[r] = malloc(table->cols * sizeof(TableCell));
+        if (!table->cells[r])
+            return;
+
+        for (int32_t c = 0; c < table->cols; c++)
+        {
+            TableCell *cell = &table->cells[r][c];
+
+            cell->size = table->cells[0][0].size;
+            cell->fgColor = FWHITE;
+            cell->bgColor = BBLACK;
+
+            cell->content = malloc((cell->size + 1) * sizeof(char));
+            if (!cell->content)
+            {
+                perror("malloc");
+                exit(1);
+            }
+            memset(cell->content, ' ', cell->size);
+            cell->content[cell->size] = '\0';
+
+            cell->conCells = malloc(cell->size * sizeof(Cell *));
+            if (!cell->conCells)
+                return;
+
+            for (int i = 0; i < cell->size; i++)
+            {
+                int fbRow = r;
+                int fbCol = c * cell->size + i;
+
+                if (fbCol >= con->cols)
+                {
+                    cell->conCells[i] = NULL;
+                    continue;
+                }
+
+                cell->conCells[i] = &con->framebuffer[fbRow][fbCol];
+            }
+        }
+    }
+
+    table->rows = newRows;
 }
