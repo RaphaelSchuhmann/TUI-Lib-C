@@ -6,7 +6,7 @@
 #include <inttypes.h>
 // ✓
 // ! FIXME: When columns is any other value than 3, it adds one separator to much
-// TODO: Add rows [✓], remove rows [], add columns [], remove columns []
+// TODO: Add row [✓], remove row [✓], add column [], remove column []
 
 Table createTable(Console *con, int32_t rows, int32_t cols)
 {
@@ -332,4 +332,93 @@ void addTableRow(Table *table, Console *con, int32_t rows)
     }
 
     table->rows = newRows;
+}
+
+void removeTableRow(Table *table, Console *con, int32_t row)
+{
+    if (row < 0 || row + 1 > table->rows)
+        return;
+
+    // If Last row set fb row to empty
+    if (row + 1 == table->rows)
+    {
+        // Free cell memory and reset their values
+        for (int32_t tc = 0; tc < table->cols; tc++)
+        {
+            // Free table cell memory
+            TableCell *cell = &table->cells[row][tc];
+
+            if (cell->content)
+            {
+                cell->content = NULL;
+                free(cell->content);
+            }
+
+            if (cell->conCells)
+            {
+                cell->conCells = NULL;
+                free(cell->conCells);
+            }
+
+            cell->size = 0;
+            cell->fgColor = FWHITE;
+            cell->bgColor = BBLACK;
+        }
+
+        // Empty framebuffer cells
+        for (int32_t fc = 0; fc < con->cols; fc++)
+        {
+            setCellData(con, row, fc, FWHITE, BBLACK, L' ');
+        }
+    }
+    else
+    {
+        // Else remove row and move all below one row up
+        for (int32_t tr = row; tr < table->rows; tr++)
+        {
+            // Break if row is last row
+            if (tr + 1 == table->rows)
+            {
+                continue;
+            }
+
+            for (int32_t tc = 0; tc < table->cols; tc++)
+            {
+                TableCell *nextCell = &table->cells[tr + 1][tc];
+                setCellValue(table, nextCell->content, tr, tc, nextCell->fgColor, nextCell->bgColor);
+            }
+        }
+
+        // Remove last row which should be empty
+        // Free cell memory and reset their values
+        for (int32_t tc = 0; tc < table->cols; tc++)
+        {
+            // Free table cell memory
+            TableCell *cell = &table->cells[table->rows - 1][tc];
+
+            if (cell->content)
+            {
+                cell->content = NULL;
+                free(cell->content);
+            }
+
+            if (cell->conCells)
+            {
+                cell->conCells = NULL;
+                free(cell->conCells);
+            }
+
+            cell->size = 0;
+            cell->fgColor = FWHITE;
+            cell->bgColor = BBLACK;
+        }
+
+        // Empty framebuffer cells
+        for (int32_t fc = 0; fc < con->cols; fc++)
+        {
+            setCellData(con, table->rows - 1, fc, FWHITE, BBLACK, L' ');
+        }
+    }
+
+    table->rows--;
 }
