@@ -4,8 +4,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
-// ✓
-// TODO: Add row [✓], remove row [✓], add column [✓], remove column []
 
 Table createTable(Console *con, int32_t rows, int32_t cols)
 {
