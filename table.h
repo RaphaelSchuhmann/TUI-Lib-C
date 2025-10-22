@@ -33,5 +33,6 @@ void removeTable(Table *table);
 void addTableRow(Table *table, Console *con);
 void removeTableRow(Table *table, Console *con, int32_t row);
 void addTableCol(Table *table, Console *con);
+void removeTableCol(Table *table, Console *con, int32_t col);
 
 #endif

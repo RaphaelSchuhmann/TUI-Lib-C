@@ -365,14 +365,14 @@ void removeTableRow(Table *table, Console *con, int32_t row)
 
             if (cell->content)
             {
-                cell->content = NULL;
                 free(cell->content);
+                cell->content = NULL;
             }
 
             if (cell->conCells)
             {
-                cell->conCells = NULL;
                 free(cell->conCells);
+                cell->conCells = NULL;
             }
 
             cell->size = 0;
@@ -413,14 +413,14 @@ void removeTableRow(Table *table, Console *con, int32_t row)
 
             if (cell->content)
             {
-                cell->content = NULL;
                 free(cell->content);
+                cell->content = NULL;
             }
 
             if (cell->conCells)
             {
-                cell->conCells = NULL;
                 free(cell->conCells);
+                cell->conCells = NULL;
             }
 
             cell->size = 0;
@@ -526,5 +526,124 @@ void addTableCol(Table *table, Console *con)
         }
     }
 
+    free(separators);
+
     table->cols++;
+}
+
+void removeTableCol(Table *table, Console *con, int32_t col)
+{
+    if (col < 0 || col + 1 > table->cols)
+        return;
+
+    // Calculate separators for new cell size
+    int32_t usableCols = con->cols;
+    if (usableCols % 2 != 0)
+        usableCols--;
+
+    int32_t colWidth = usableCols / (table->cols - 1);
+
+    int32_t *separators = malloc((table->cols - 1) * sizeof(int32_t));
+    if (!separators)
+        return;
+
+    for (int32_t j = 0; j < table->cols - 1; j++)
+        separators[j] = (j + 1) * colWidth;
+
+    // If last column set fb column to empty
+    if (col + 1 == table->cols)
+    {
+        for (int32_t tr = 0; tr < table->rows; tr++)
+        {
+            TableCell *cell = &table->cells[tr][col];
+
+            if (cell->content)
+            {
+                free(cell->content);
+                cell->content = NULL;
+            }
+
+            if (cell->conCells)
+            {
+                free(cell->conCells);
+                cell->conCells = NULL;
+            }
+
+            cell->size = 0;
+            cell->fgColor = FWHITE;
+            cell->bgColor = BBLACK;
+        }
+
+        for (int32_t fr = 0; fr < con->rows; fr++)
+        {
+            for (int32_t fc = usableCols - table->cells[0][table->cols - 1].size; fc < con->cols; fc++)
+            {
+                setCellData(con, fr, fc, FWHITE, BBLACK, L' ');
+            }
+        }
+    }
+    else
+    {
+        // Else remove column and shift all columns to its right one to the left
+        // Temporarily store all cell contents to set them again later
+        char *tableContents[table->rows][table->cols - 1];
+        for (int32_t r = 0; r < table->rows; r++)
+        {
+            for (int32_t c = 0; c < table->cols - 1; c++)
+            {
+                if (c == col)
+                    continue;
+                tableContents[r][c] = table->cells[r][c].content;
+            }
+        }
+
+        // Shift columns
+        for (int32_t tr = 0; tr < table->rows; tr++)
+        {
+            for (int32_t tc = col; tc < table->cols - 1; tc++)
+            {
+                if (tc + 1 == table->cols)
+                {
+                    break;
+                }
+
+                TableCell *nextCell = &table->cells[tr][tc + 1];
+                setCellValue(table, nextCell->content, tr, tc, nextCell->fgColor, nextCell->bgColor);
+            }
+        }
+
+        // Remove last column
+        for (int32_t tr = 0; tr < table->rows; tr++)
+        {
+            TableCell *cell = &table->cells[tr][table->cols - 1];
+
+            if (cell->content)
+            {
+                cell->content = NULL;
+                free(cell->content);
+            }
+
+            if (cell->conCells)
+            {
+                cell->conCells = NULL;
+                free(cell->conCells);
+            }
+
+            cell->size = 0;
+            cell->fgColor = FWHITE;
+            cell->bgColor = BBLACK;
+        }
+
+        for (int32_t fr = 0; fr < table->rows; fr++)
+        {
+            for (int32_t fc = usableCols - table->cells[0][table->cols - 1].size; fc < con->cols; fc++)
+            {
+                setCellData(con, fr, fc, FWHITE, BBLACK, L' ');
+            }
+        }
+    }
+
+    free(separators);
+
+    table->cols--;
 }
