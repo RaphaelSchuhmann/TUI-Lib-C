@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 // ✓
-// TODO: Add row [✓], remove row [✓], add column [], remove column []
+// TODO: Add row [✓], remove row [✓], add column [✓], remove column []
 
 Table createTable(Console *con, int32_t rows, int32_t cols)
 {
@@ -89,6 +89,9 @@ Table createTable(Console *con, int32_t rows, int32_t cols)
 
 void setCellValue(Table *table, char *value, int32_t row, int32_t col, ColorForeground fgColor, ColorBackground bgColor)
 {
+    if (row >= table->rows || col >= table->cols)
+        return;
+
     TableCell *cell = &table->cells[row][col];
 
     int32_t spaceCounter = 0;
@@ -291,13 +294,10 @@ void resetTableConsole(Table *table, Console *con, HANDLE hConsole)
     resetConsole(con, hConsole);
 }
 
-void addTableRow(Table *table, Console *con, int32_t rows)
+void addTableRow(Table *table, Console *con)
 {
-    if (rows <= 0)
-        return;
-
     int32_t oldRows = table->rows;
-    int32_t newRows = table->rows + rows;
+    int32_t newRows = table->rows + 1;
 
     table->cells = realloc(table->cells, newRows * sizeof(TableCell *));
     if (!table->cells)
@@ -436,4 +436,95 @@ void removeTableRow(Table *table, Console *con, int32_t row)
     }
 
     table->rows--;
+}
+
+void addTableCol(Table *table, Console *con)
+{
+    // Calculate separators for new cell size
+    int32_t usableCols = con->cols;
+    if (usableCols % 2 != 0)
+        usableCols--;
+
+    int32_t colWidth = usableCols / (table->cols + 1);
+
+    int32_t *separators = malloc((table->cols + 1) * sizeof(int32_t));
+    if (!separators)
+        return;
+
+    for (int32_t j = 0; j < table->cols + 1; j++)
+        separators[j] = (j + 1) * colWidth;
+
+    // Temporarily store all cell contents to set them again later
+    char *tableContents[table->rows][table->cols];
+    for (int32_t r = 0; r < table->rows; r++)
+    {
+        for (int32_t c = 0; c < table->cols; c++)
+        {
+            tableContents[r][c] = table->cells[r][c].content;
+        }
+    }
+
+    for (int32_t r = 0; r < table->rows; r++)
+    {
+        table->cells[r] = malloc((table->cols + 1) * sizeof(TableCell));
+        if (!table->cells[r])
+            return;
+
+        for (int32_t c = 0; c < table->cols + 1; c++)
+        {
+            TableCell *cell = &table->cells[r][c];
+
+            int32_t startCol = (c == 0) ? 0 : separators[c - 1] + 1;
+            int32_t endCol = separators[c] - 1;
+            cell->size = endCol - startCol + 1;
+
+            if (cell->size <= 0)
+            {
+                cell->size = 0;
+                cell->conCells = NULL;
+                continue; // skip this cell
+            }
+
+            cell->fgColor = FWHITE;
+            cell->bgColor = BBLACK;
+
+            cell->content = malloc((cell->size + 1) * sizeof(char));
+            if (!cell->content)
+            {
+                perror("Column content malloc");
+                exit(1);
+            }
+            memset(cell->content, ' ', cell->size);
+            cell->content[cell->size] = '\0';
+
+            cell->conCells = malloc(cell->size * sizeof(Cell *));
+            if (!cell->conCells)
+                return;
+
+            for (int i = 0; i < cell->size; i++)
+            {
+                int fbRow = r;
+                int fbCol = c * cell->size + i;
+
+                if (fbCol >= con->cols)
+                {
+                    cell->conCells[i] = NULL;
+                    continue;
+                }
+
+                cell->conCells[i] = &con->framebuffer[fbRow][fbCol];
+            }
+        }
+    }
+
+    // Restore old cell contents
+    for (int32_t r = 0; r < table->rows; r++)
+    {
+        for (int32_t c = 0; c < table->cols; c++)
+        {
+            setCellValue(table, tableContents[r][c], r, c, FWHITE, BBLACK);
+        }
+    }
+
+    table->cols++;
 }
