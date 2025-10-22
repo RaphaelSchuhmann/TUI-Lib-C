@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 // ✓
-// ! FIXME: When columns is any other value than 3, it adds one separator to much
 // TODO: Add row [✓], remove row [✓], add column [], remove column []
 
 Table createTable(Console *con, int32_t rows, int32_t cols)
@@ -20,15 +19,23 @@ Table createTable(Console *con, int32_t rows, int32_t cols)
         table.cells[r] = malloc(cols * sizeof(TableCell));
 
     // Prepare separator columns
-    int32_t *separators = malloc(cols * sizeof(int));
-    int32_t colWidth = con->cols / cols;
+    int32_t usableCols = con->cols;
+    if (usableCols % 2 != 0)
+        usableCols--;
+
+    int32_t colWidth = usableCols / cols;
+
+    int32_t *separators = malloc(cols * sizeof(int32_t));
+    if (!separators)
+        return table;
+
     for (int32_t j = 0; j < cols; j++)
         separators[j] = (j + 1) * colWidth;
 
     // Create column borders in framebuffer
     for (int32_t i = 0; i < rows; i++)
     {
-        for (int32_t j = 0; j < cols; j++)
+        for (int32_t j = 0; j < cols - 1; j++)
             setCellData(con, i, separators[j], FWHITE, BBLACK, '|');
     }
 
@@ -180,14 +187,22 @@ void reDrawTable(Table *table, Console *con, HANDLE hConsole, bool hlt)
     getWindowSize(con, hConsole);
 
     // Recalculate separators
-    int32_t *separators = malloc(table->cols * sizeof(int));
-    int32_t colWidth = con->cols / table->cols;
+    int32_t usableCols = con->cols;
+    if (usableCols % 2 != 0)
+        usableCols--;
+
+    int32_t colWidth = usableCols / table->cols;
+
+    int32_t *separators = malloc(table->cols * sizeof(int32_t));
+    if (!separators)
+        return;
+
     for (int32_t j = 0; j < table->cols; j++)
         separators[j] = (j + 1) * colWidth;
 
     for (int32_t i = 0; i < table->rows; i++)
     {
-        for (int32_t j = 0; j < table->cols; j++)
+        for (int32_t j = 0; j < table->cols - 1; j++)
             setCellData(con, i, separators[j], FWHITE, BBLACK, '|');
     }
 
