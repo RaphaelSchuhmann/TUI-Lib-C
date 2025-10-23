@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
+// ! FIXME: When setting the value of a cell you cannot set an empty string or a string with only a space
+// TODO: Consider auto calling redraw after adding / removing a row or column
+// TODO: Implement proper error handling (Consider a custom error handler)
+
 Table createTable(Console *con, int32_t rows, int32_t cols)
 {
     Table table;
@@ -452,13 +456,14 @@ void addTableCol(Table *table, Console *con)
     for (int32_t j = 0; j < table->cols + 1; j++)
         separators[j] = (j + 1) * colWidth;
 
-    // Temporarily store all cell contents to set them again later
-    char *tableContents[table->rows][table->cols];
+    // Temporarily store copies of all cells to set them again later
+    TableCell tableCells[table->rows][table->cols];
+    // char *tableContents[table->rows][table->cols];
     for (int32_t r = 0; r < table->rows; r++)
     {
         for (int32_t c = 0; c < table->cols; c++)
         {
-            tableContents[r][c] = table->cells[r][c].content;
+            tableCells[r][c] = table->cells[r][c];
         }
     }
 
@@ -520,7 +525,7 @@ void addTableCol(Table *table, Console *con)
     {
         for (int32_t c = 0; c < table->cols; c++)
         {
-            setCellValue(table, tableContents[r][c], r, c, FWHITE, BBLACK);
+            setCellValue(table, tableCells[r][c].content, r, c, tableCells[r][c].fgColor, tableCells[r][c].bgColor);
         }
     }
 

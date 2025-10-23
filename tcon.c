@@ -3,6 +3,9 @@
 #include <stdbool.h>
 #include <inttypes.h>
 #include "tcon.h"
+// TODO: Update print function to work like printf()
+// TODO: Implement a read function that automatically resizes its buffer
+// TODO: Implement proper error handling (Consider a custom error handler)
 
 void showCursor(Console console, HANDLE hConsole)
 {

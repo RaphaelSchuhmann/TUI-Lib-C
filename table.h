@@ -6,6 +6,8 @@
 #ifndef TABLE_H
 #define TABLE_H
 
+// TODO: Write doc comments
+
 typedef struct TableCell
 {
     int32_t size;
