@@ -134,11 +134,13 @@ Adds a new row to the end of a given table.
 Arguments:
    table - the table to add a row
    con - the current Console object
+   hConsole - a windows stdout handle
+   hlt - a flag to halt execution and wait for user input
 
 Returns:
    Void
 */
-void addTableRow(Table *table, Console *con);
+void addTableRow(Table *table, Console *con, HANDLE hConsole, bool hlt);
 
 /*
 Removes a given row from a table.
@@ -147,11 +149,13 @@ Arguments:
    table - the table to remove the row from
    con - the current Console object
    row - the row to remove
+   hConsole - a windows stdout handle
+   hlt - a flag to halt execution and wait for user input
 
 Returns:
    Void
 */
-void removeTableRow(Table *table, Console *con, int32_t row);
+void removeTableRow(Table *table, Console *con, int32_t row, HANDLE hConsole, bool hlt);
 
 /*
 Adds a new column to the end of a given table.
@@ -159,11 +163,13 @@ Adds a new column to the end of a given table.
 Arguments:
    table - the table to add the column
    con - the current Console object
+   hConsole - a windows stdout handle
+   hlt - a flag to halt execution and wait for user input
 
 Returns:
    Void
 */
-void addTableCol(Table *table, Console *con);
+void addTableCol(Table *table, Console *con, HANDLE hConsole, bool hlt);
 
 /*
 Removes a given column from a table.
@@ -172,10 +178,12 @@ Arguments:
    table - the table to remove the column from
    con - the current Console object
    col - the column to remove
+   hConsole - a windows stdout handle
+   hlt - a flag to halt execution and wait for user input
 
 Returns:
    Void
 */
-void removeTableCol(Table *table, Console *con, int32_t col);
+void removeTableCol(Table *table, Console *con, int32_t col, HANDLE hConsole, bool hlt);
 
 #endif

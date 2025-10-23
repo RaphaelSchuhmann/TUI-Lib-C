@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-// TODO: Consider auto calling redraw after adding / removing a row or column
 // TODO: Implement proper error handling (Consider a custom error handler)
 
 Table createTable(Console *con, int32_t rows, int32_t cols)
@@ -295,7 +294,7 @@ void resetTableConsole(Table *table, Console *con, HANDLE hConsole)
     resetConsole(con, hConsole);
 }
 
-void addTableRow(Table *table, Console *con)
+void addTableRow(Table *table, Console *con, HANDLE hConsole, bool hlt)
 {
     int32_t oldRows = table->rows;
     int32_t newRows = table->rows + 1;
@@ -348,9 +347,11 @@ void addTableRow(Table *table, Console *con)
     }
 
     table->rows = newRows;
+
+    reDrawTable(table, con, hConsole, hlt);
 }
 
-void removeTableRow(Table *table, Console *con, int32_t row)
+void removeTableRow(Table *table, Console *con, int32_t row, HANDLE hConsole, bool hlt)
 {
     if (row < 0 || row + 1 > table->rows)
         return;
@@ -437,9 +438,11 @@ void removeTableRow(Table *table, Console *con, int32_t row)
     }
 
     table->rows--;
+
+    reDrawTable(table, con, hConsole, hlt);
 }
 
-void addTableCol(Table *table, Console *con)
+void addTableCol(Table *table, Console *con, HANDLE hConsole, bool hlt)
 {
     // Calculate separators for new cell size
     int32_t usableCols = con->cols;
@@ -531,9 +534,11 @@ void addTableCol(Table *table, Console *con)
     free(separators);
 
     table->cols++;
+
+    reDrawTable(table, con, hConsole, hlt);
 }
 
-void removeTableCol(Table *table, Console *con, int32_t col)
+void removeTableCol(Table *table, Console *con, int32_t col, HANDLE hConsole, bool hlt)
 {
     if (col < 0 || col + 1 > table->cols)
         return;
@@ -648,4 +653,6 @@ void removeTableCol(Table *table, Console *con, int32_t col)
     free(separators);
 
     table->cols--;
+
+    reDrawTable(table, con, hConsole, hlt);
 }
