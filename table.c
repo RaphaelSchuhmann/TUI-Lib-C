@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-// ! FIXME: When setting the value of a cell you cannot set an empty string or a string with only a space
 // TODO: Consider auto calling redraw after adding / removing a row or column
 // TODO: Implement proper error handling (Consider a custom error handler)
 
