@@ -103,7 +103,7 @@ void setCellValue(Table *table, char *value, int32_t row, int32_t col, ColorFore
             spaceCounter++;
     }
 
-    if (spaceCounter == strlen(value) && cell->size != strlen(value))
+    if (spaceCounter == strlen(value) && cell->size < strlen(value))
         contentCut(value, cell->size - 1, strlen(value));
 
     int32_t len = strlen(value);
